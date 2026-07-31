@@ -32,57 +32,9 @@ def get_odoo_uid():
         print(f"Error Odoo Auth: {e}")
         return None
 
-def find_vehicle_id(uid, reg_no):
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "call",
-        "params": {
-            "service": "object",
-            "method": "execute_kw",
-            "args": [
-                ODOO_DB, uid, Odoo_API_KEY,
-                "fleet.vehicle", "search",
-                [[["name", "ilike", reg_no]]]
-            ]
-        },
-        "id": 2
-    }
-    try:
-        res = requests.post(f"{ODOO_URL}/jsonrpc", json=payload, timeout=15).json()
-        result = res.get("result", [])
-        return result[0] if result else None
-    except Exception:
-        return None
-
-def create_odometer(uid, vehicle_id, value, date_str):
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "call",
-        "params": {
-            "service": "object",
-            "method": "execute_kw",
-            "args": [
-                ODOO_DB, uid, Odoo_API_KEY,
-                "fleet.vehicle.odometer", "create",
-                [{
-                    "vehicle_id": vehicle_id,
-                    "value": float(value),
-                    "date": date_str
-                }]
-            ]
-        },
-        "id": 3
-    }
-    try:
-        res = requests.post(f"{ODOO_URL}/jsonrpc", json=payload, timeout=15).json()
-        return not bool(res.get("error"))
-    except Exception:
-        return False
-
 def main():
-    print("Memulai sinkronisasi Cartrack ke Odoo via GitHub Actions...")
+    print("Memulai sinkronisasi Cartrack ke Odoo via GitHub Actions (Debug Mode)...")
     
-    # Menggunakan kombinasi Header API Key yang umum untuk Fleet API
     headers = {
         "api-key": CARTRACK_TOKEN,
         "username": CARTRACK_USER,
@@ -90,54 +42,22 @@ def main():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
     }
 
-    # 1. Ambil daftar kendaraan dari Cartrack
+    # Ambil daftar kendaraan dari Cartrack
     res = requests.get(CARTRACK_BASE_URL, headers=headers, timeout=20)
-if res.status_code != 200:
-    print(f"Gagal mengambil data dari Cartrack. Status: {res.status_code}")
-    print(f"Response Headers: {res.headers}") # <-- Untuk melihat petunjuk header dari server
-    print(f"Respon: {res.text}")
-    return
+    
+    # Cetak Headers untuk keperluan debugging error 401
+    print(f"HTTP Status Code: {res.status_code}")
+    print(f"Response Headers: {dict(res.headers)}")
+    
+    if res.status_code != 200:
+        print(f"Gagal mengambil data dari Cartrack. Respon: {res.text}")
+        return
 
     vehicles = res.json()
     if isinstance(vehicles, dict):
         vehicles = vehicles.get("data", vehicles.get("vehicles", []))
 
-    print(f"Ditemukan {len(vehicles)} kendaraan di Cartrack. Menghubungkan ke Odoo...")
-    uid = get_odoo_uid()
-    if not uid:
-        print("Gagal terautentikasi ke Odoo.")
-        return
-
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    success_count = 0
-
-    # 2. Iterasi per kendaraan untuk menarik odometer & lempar ke Odoo
-    for v in vehicles:
-        reg = v.get("registration")
-        if not reg:
-            continue
-
-        odo_url = f"{CARTRACK_BASE_URL}/{reg}/odometer"
-        odo_res = requests.get(odo_url, headers=headers, timeout=15)
-        
-        if odo_res.status_code == 200:
-            odo_data = odo_res.json()
-            val = odo_data.get("odometer", odo_data.get("value", odo_data.get("distance", 0)))
-            
-            vehicle_id = find_vehicle_id(uid, reg)
-            if vehicle_id:
-                sukses = create_odometer(uid, vehicle_id, val, today_str)
-                if sukses:
-                    print(f"✅ Sukses: [{reg}] -> Odometer: {val}")
-                    success_count += 1
-                else:
-                    print(f"❌ Gagal simpan ke Odoo untuk kendaraan: {reg}")
-            else:
-                print(f"⚠️ Mobil [{reg}] tidak ditemukan di sistem Odoo.")
-        else:
-            print(f"❌ Gagal tarik odometer {reg}")
-
-    print(f"Sinkronisasi selesai! Total {success_count} data berhasil dimasukkan ke Odoo.")
+    print(f"Berhasil terhubung! Ditemukan {len(vehicles)} kendaraan.")
 
 if __name__ == "__main__":
     main()
