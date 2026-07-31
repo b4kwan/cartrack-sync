@@ -82,9 +82,10 @@ def create_odometer(uid, vehicle_id, value, date_str):
 def main():
     print("Memulai sinkronisasi Cartrack ke Odoo via GitHub Actions...")
     
-    # Menggunakan Header Token langsung
+    # Menggunakan kombinasi Header API Key yang umum untuk Fleet API
     headers = {
-        "Authorization": f"Token {CARTRACK_TOKEN}",
+        "api-key": CARTRACK_TOKEN,
+        "username": CARTRACK_USER,
         "Accept": "application/json",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
     }
