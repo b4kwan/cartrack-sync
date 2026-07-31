@@ -1,13 +1,12 @@
 import os
 import requests
-from requests.auth import HTTPBasicAuth
 from datetime import datetime
 
 # ==========================================
 # KONFIGURASI CARTRACK & ODOO
 # ==========================================
 CARTRACK_USER = "PROY00001"
-CARTRACK_PASS = "83e18c5e077615626fbc9c5f9566e5b6ae45c00a7b6fcfc6bd2562cdb86bd6d"
+CARTRACK_TOKEN = "83e18c5e077615626fbc9c5f9566e5b6ae45c00a7b6fcfc6bd2562cdb86bd6d"
 CARTRACK_BASE_URL = "https://fleetapi-id.cartrack.com/rest/vehicles"
 
 ODOO_URL     = "https://proyekin.odoo.com"  
@@ -83,15 +82,15 @@ def create_odometer(uid, vehicle_id, value, date_str):
 def main():
     print("Memulai sinkronisasi Cartrack ke Odoo via GitHub Actions...")
     
-    # Menggunakan HTTPBasicAuth resmi dari pustaka requests
-    auth = HTTPBasicAuth(CARTRACK_USER, CARTRACK_PASS)
+    # Menggunakan Header Token langsung
     headers = {
+        "Authorization": f"Token {CARTRACK_TOKEN}",
         "Accept": "application/json",
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0"
     }
 
     # 1. Ambil daftar kendaraan dari Cartrack
-    res = requests.get(CARTRACK_BASE_URL, auth=auth, headers=headers, timeout=20)
+    res = requests.get(CARTRACK_BASE_URL, headers=headers, timeout=20)
     if res.status_code != 200:
         print(f"Gagal mengambil data dari Cartrack. Status: {res.status_code}, Respon: {res.text}")
         return
@@ -116,7 +115,7 @@ def main():
             continue
 
         odo_url = f"{CARTRACK_BASE_URL}/{reg}/odometer"
-        odo_res = requests.get(odo_url, auth=auth, headers=headers, timeout=15)
+        odo_res = requests.get(odo_url, headers=headers, timeout=15)
         
         if odo_res.status_code == 200:
             odo_data = odo_res.json()
