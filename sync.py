@@ -92,9 +92,11 @@ def main():
 
     # 1. Ambil daftar kendaraan dari Cartrack
     res = requests.get(CARTRACK_BASE_URL, headers=headers, timeout=20)
-    if res.status_code != 200:
-        print(f"Gagal mengambil data dari Cartrack. Status: {res.status_code}, Respon: {res.text}")
-        return
+if res.status_code != 200:
+    print(f"Gagal mengambil data dari Cartrack. Status: {res.status_code}")
+    print(f"Response Headers: {res.headers}") # <-- Untuk melihat petunjuk header dari server
+    print(f"Respon: {res.text}")
+    return
 
     vehicles = res.json()
     if isinstance(vehicles, dict):
